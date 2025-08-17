@@ -26,6 +26,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const urlParams = new URLSearchParams(window.location.search);
     const currentTableNumber = urlParams.get('table');
+    const broadcastChannel = new BroadcastChannel('orders_channel');
+    let db;
+
+    // Initialize IndexedDB
+    function initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('TeaPointDB', 1);
+
+            request.onerror = (event) => {
+                console.error('Database error:', event.target.error);
+                reject(event.target.error);
+            };
+
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                console.log('Database initialized');
+                resolve(db);
+            };
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('orders')) {
+                    db.createObjectStore('orders', { keyPath: 'id' });
+                }
+            };
+        });
+    }
+
+    // Add order to IndexedDB
+    function addOrder(order) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['orders'], 'readwrite');
+            const store = transaction.objectStore('orders');
+            const request = store.add(order);
+
+            request.onsuccess = () => {
+                resolve();
+            };
+
+            request.onerror = (event) => {
+                console.error('Error adding order:', event.target.error);
+                reject(event.target.error);
+            };
+        });
+    }
 
     function renderMenu() {
         menuContainer.innerHTML = '';
@@ -58,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         totalPriceElement.textContent = total.toFixed(2);
     }
 
-    function placeOrder() {
+    async function placeOrder() {
         const orderItems = [];
         let totalOrderPrice = 0;
 
@@ -91,22 +136,29 @@ document.addEventListener('DOMContentLoaded', () => {
             synced: false
         };
 
-        const existingOrders = JSON.parse(localStorage.getItem('cafeOrders')) || [];
-        existingOrders.push(newOrder);
-        localStorage.setItem('cafeOrders', JSON.stringify(existingOrders));
+        try {
+            await addOrder(newOrder);
+            
+            // Broadcast the new order to other tabs
+            broadcastChannel.postMessage({
+                type: 'new_order',
+                order: newOrder
+            });
 
-        if (navigator.onLine) {
-            // In a real app, you would sync with server here
-            // For this demo, we'll just mark as synced
-            newOrder.synced = true;
-            localStorage.setItem('cafeOrders', JSON.stringify(existingOrders));
-            window.dispatchEvent(new Event('storage'));
-            showModal('Order Placed!', `Your order from Table ${currentTableNumber} has been received.`, true);
-        } else {
-            showModal('Order Saved', 'Your order has been saved locally and will be synced when online.', true);
+            if (navigator.onLine) {
+                // In a real app, you would sync with server here
+                // For this demo, we'll just mark as synced
+                newOrder.synced = true;
+                showModal('Order Placed!', `Your order from Table ${currentTableNumber} has been received.`, true);
+            } else {
+                showModal('Order Saved', 'Your order has been saved locally and will be synced when online.', true);
+            }
+
+            clearCart();
+        } catch (error) {
+            console.error('Error placing order:', error);
+            showModal('Error', 'There was an error placing your order. Please try again.', false);
         }
-
-        clearCart();
     }
 
     function clearCart() {
@@ -150,24 +202,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Sync when coming back online
     window.addEventListener('online', () => {
-        const orders = JSON.parse(localStorage.getItem('cafeOrders')) || [];
-        const unsyncedOrders = orders.filter(order => !order.synced);
-        
-        if (unsyncedOrders.length > 0) {
-            // In a real app, you would sync with server here
-            // For this demo, we'll just mark as synced
-            const updatedOrders = orders.map(order => {
-                return {...order, synced: true};
-            });
-            
-            localStorage.setItem('cafeOrders', JSON.stringify(updatedOrders));
-            window.dispatchEvent(new Event('storage'));
-            
-            showModal('Orders Synced', 'Your offline orders have been synced.', true);
-        }
+        // In a real app, you would sync with server here
+        // For this demo, we'll just mark as synced
+        showModal('Back Online', 'You are now online. Orders will be synced.', true);
     });
 
     // Initial render
-    renderMenu();
-    updateCart();
+    initDB().then(() => {
+        renderMenu();
+        updateCart();
+    }).catch(error => {
+        console.error('Failed to initialize database:', error);
+    });
 });

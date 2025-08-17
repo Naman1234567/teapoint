@@ -1,4 +1,4 @@
-const CACHE_NAME = 'teapoint-v2';
+const CACHE_NAME = 'teapoint-v3';
 const urlsToCache = [
   './',
   './index.html',
@@ -76,4 +76,12 @@ self.addEventListener('activate', event => {
       );
     })
   );
+});
+
+// Background sync for orders
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-orders') {
+    console.log('Background sync for orders');
+    // In a real app, you would sync orders with the server here
+  }
 });
