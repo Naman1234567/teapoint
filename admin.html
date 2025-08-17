@@ -6,6 +6,8 @@
     <title>TeaPoint Admin Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <header class="app-header">
@@ -35,22 +37,11 @@
                 <label for="table-select">Select Table:</label>
                 <select id="table-select">
                     <option value="">-- Select Table --</option>
-                    <option value="1">Table 1</option>
-                    <option value="2">Table 2</option>
-                    <option value="3">Table 3</option>
-                    <option value="4">Table 4</option>
-                    <option value="5">Table 5</option>
-                    <option value="6">Table 6</option>
-                    <option value="7">Table 7</option>
-                    <option value="8">Table 8</option>
-                    <option value="9">Table 9</option>
-                    <option value="10">Table 10</option>
                 </select>
             </div>
-
-            <div id="bill-details" class="bill-details">
-                <h2 id="bill-table-header">Bill for Table: </h2>
-                <table class="bill-items-table">
+            <div id="bill-details" class="bill-details-card" style="display: none;">
+                <h2>Bill for Table <span id="bill-table-number"></span></h2>
+                <table class="bill-table">
                     <thead>
                         <tr>
                             <th>Item</th>
@@ -60,8 +51,7 @@
                         </tr>
                     </thead>
                     <tbody id="bill-items-body">
-                        <!-- Bill items will be inserted here by JavaScript -->
-                    </tbody>
+                        </tbody>
                 </table>
                 <div class="bill-total">
                     <p>Total: Rs: <span id="bill-total-amount">0.00</span></p>
@@ -79,6 +69,21 @@
         </div>
     </footer>
 
+    <script>
+        // Your Firebase project configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqD0s8nceErvZe5ZlIxQmyipKcQv23P2Q",
+            authDomain: "teapoint-ordering-system.firebaseapp.com",
+            projectId: "teapoint-ordering-system",
+            storageBucket: "teapoint-ordering-system.firebasestorage.app",
+            messagingSenderId: "936037537715",
+            appId: "1:936037537715:web:5aa1e06cbbd618c52b5dc6",
+            measurementId: "G-E828DRY255"
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script>
     <script src="admin.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

@@ -3,13 +3,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const refreshButton = document.getElementById('refresh-button');
     const notificationSound = document.getElementById('notification-sound');
     const tableSelect = document.getElementById('table-select');
-    const billTableHeader = document.getElementById('bill-table-header');
     const billItemsBody = document.getElementById('bill-items-body');
     const billTotalAmount = document.getElementById('bill-total-amount');
     const markPaidButton = document.getElementById('mark-paid-button');
     const billDetails = document.getElementById('bill-details');
     const enableSoundButton = document.getElementById('enable-sound-button');
     const soundPrompt = document.getElementById('sound-prompt');
+
+    // Menu data (assuming this is also available on the admin side)
+    const menu = [
+        { id: '1', name: 'Matka Chiya', price: 35 },
+        { id: '2', name: 'Chiya Normal', price: 30 },
+        { id: '3', name: 'Black tea', price: 20 },
+        { id: '4', name: 'Lemon Tea', price: 25 },
+        { id: '5', name: 'Frooti', price: 30 },
+        { id: '6', name: 'Water', price: 25 },
+        { id: '7', name: 'Surya Red', price: 25 },
+        { id: '8', name: 'Surya Fusion', price: 25 },
+        { id: '9', name: 'Shikhar', price: 20 },
+        { id: '10', name: 'Brown', price: 20 },
+    ];
 
     // Tab functionality
     const tabButtons = document.querySelectorAll('.tab-button');
@@ -34,94 +47,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    let previousOrders = [];
-    let db;
-    const broadcastChannel = new BroadcastChannel('orders_channel');
-    let isSoundEnabled = false;
+    // Check for sound preference in localStorage
+    let isSoundEnabled = localStorage.getItem('soundEnabled') === 'true';
+    updateSoundPrompt();
 
-    // Initialize IndexedDB
-    function initDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open('TeaPointDB', 1);
-
-            request.onerror = (event) => {
-                console.error('Database error:', event.target.error);
-                reject(event.target.error);
-            };
-
-            request.onsuccess = (event) => {
-                db = event.target.result;
-                console.log('Database initialized');
-                resolve(db);
-            };
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains('orders')) {
-                    db.createObjectStore('orders', { keyPath: 'id' });
-                }
-            };
-        });
-    }
-
-    // Get all orders from IndexedDB
-    function getAllOrders() {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(['orders'], 'readonly');
-            const store = transaction.objectStore('orders');
-            const request = store.getAll();
-
-            request.onsuccess = () => {
-                resolve(request.result || []);
-            };
-
-            request.onerror = (event) => {
-                console.error('Error getting orders:', event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-
-    // Delete order from IndexedDB
-    function deleteOrder(orderId) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(['orders'], 'readwrite');
-            const store = transaction.objectStore('orders');
-            const request = store.delete(orderId);
-
-            request.onsuccess = () => {
-                resolve();
-            };
-
-            request.onerror = (event) => {
-                console.error('Error deleting order:', event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
-
-    // Delete all orders for a table from IndexedDB
-    function deleteTableOrders(tableNumber) {
-        return new Promise((resolve, reject) => {
-            getAllOrders().then(orders => {
-                const ordersToDelete = orders.filter(order => order.tableNumber === tableNumber);
-                const transaction = db.transaction(['orders'], 'readwrite');
-                const store = transaction.objectStore('orders');
-                
-                ordersToDelete.forEach(order => {
-                    store.delete(order.id);
-                });
-
-                transaction.oncomplete = () => {
-                    resolve();
-                };
-
-                transaction.onerror = (event) => {
-                    console.error('Error deleting table orders:', event.target.error);
-                    reject(event.target.error);
-                };
-            });
-        });
+    function updateSoundPrompt() {
+        if (isSoundEnabled) {
+            soundPrompt.style.display = 'none';
+        } else {
+            soundPrompt.style.display = 'flex';
+        }
     }
 
     function playNotificationSound() {
@@ -131,184 +66,168 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function renderOrders() {
-        try {
-            const currentOrders = await getAllOrders();
-
-            // Identify new orders by checking if they are not in the previousOrders array
-            const newOrders = currentOrders.filter(
-                currentOrder => !previousOrders.some(prevOrder => prevOrder.id === currentOrder.id)
-            );
-
-            // Play sound if new orders exist
-            if (newOrders.length > 0) {
-                playNotificationSound();
-            }
-
-            // Group orders by table
-            const tables = {};
-            currentOrders.forEach(order => {
-                if (!tables[order.tableNumber]) {
-                    tables[order.tableNumber] = [];
-                }
-                tables[order.tableNumber].push(order);
-            });
-
-            ordersContainer.innerHTML = '';
-
-            // Display orders by table
-            const sortedTableNumbers = Object.keys(tables).sort((a, b) => parseInt(a) - parseInt(b));
-            sortedTableNumbers.forEach(tableNumber => {
-                const tableSection = document.createElement('div');
-                tableSection.className = 'table-section';
-                tableSection.innerHTML = `<h2 class="table-header">Table ${tableNumber}</h2>`;
-
-                tables[tableNumber].forEach(order => {
-                    const orderCard = document.createElement('div');
-                    orderCard.className = 'order-card';
-                    // Add the 'new-order' class if it's a new order
-                    if (newOrders.some(newOrder => newOrder.id === order.id)) {
-                        orderCard.classList.add('new-order');
-                        setTimeout(() => {
-                            orderCard.classList.remove('new-order');
-                        }, 15000); // Remove class after 15 seconds
-                    }
-                    orderCard.innerHTML = `
-                        <div class="order-header">
-                            <span class="order-time">${new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            <span class="order-total">Rs: ${order.total.toFixed(2)}</span>
-                        </div>
-                        <ul class="order-item-list">
-                            ${order.items.map(item => `<li>${item.quantity} x ${item.name} (Rs: ${item.price.toFixed(2)} each)</li>`).join('')}
-                        </ul>
-                        <div class="table-actions">
-                            <button class="btn-clear" data-order-id="${order.id}">Clear Order</button>
-                        </div>
-                    `;
-                    tableSection.appendChild(orderCard);
-                });
-
-                ordersContainer.appendChild(tableSection);
-            });
-
-            // Update previousOrders for the next check
-            previousOrders = currentOrders;
-
-            // Add event listeners to clear buttons
-            document.querySelectorAll('.btn-clear').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const orderId = e.target.dataset.orderId;
-                    clearOrder(orderId);
-                });
-            });
-        } catch (error) {
-            console.error('Error rendering orders:', error);
-        }
-    }
-
-    async function generateBillForTable(tableNumber) {
-        try {
-            const orders = await getAllOrders();
-            const tableOrders = orders.filter(order => order.tableNumber === tableNumber);
-
-            if (tableOrders.length === 0) {
-                billDetails.style.display = 'none';
-                return;
-            }
-
-            billDetails.style.display = 'block';
-            billTableHeader.textContent = `Bill for Table: ${tableNumber}`;
-
-            const allItems = {};
-            let tableTotal = 0;
-
-            tableOrders.forEach(order => {
-                order.items.forEach(item => {
-                    const itemName = item.name;
-                    if (!allItems[itemName]) {
-                        allItems[itemName] = {
-                            quantity: 0,
-                            price: item.price
-                        };
-                    }
-                    allItems[itemName].quantity += item.quantity;
-                    tableTotal += item.price * item.quantity;
-                });
-            });
-
-            billItemsBody.innerHTML = '';
-
-            for (const [itemName, itemData] of Object.entries(allItems)) {
-                const row = document.createElement('tr');
-                const totalItemPrice = itemData.quantity * itemData.price;
-                row.innerHTML = `
-                    <td>${itemName}</td>
-                    <td>${itemData.quantity}</td>
-                    <td>Rs: ${itemData.price.toFixed(2)}</td>
-                    <td>Rs: ${totalItemPrice.toFixed(2)}</td>
-                `;
-                billItemsBody.appendChild(row);
-            }
-
-            billTotalAmount.textContent = tableTotal.toFixed(2);
-        } catch (error) {
-            console.error('Error generating bill:', error);
-        }
-    }
-
-    async function clearTableOrders(tableNumber) {
-        try {
-            await deleteTableOrders(tableNumber);
-            await renderOrders();
-
-            // Hide bill details after clearing
-            billDetails.style.display = 'none';
-            tableSelect.value = '';
-        } catch (error) {
-            console.error('Error clearing table orders:', error);
-        }
-    }
-
-    async function clearOrder(orderId) {
-        try {
-            await deleteOrder(orderId);
-            await renderOrders();
-
-            const currentTable = tableSelect.value;
-            if (currentTable) {
-                await generateBillForTable(currentTable);
-            }
-        } catch (error) {
-            console.error('Error clearing order:', error);
-        }
-    }
-
     function enableSound() {
-        notificationSound.play()
-            .then(() => {
-                console.log("Audio playback enabled.");
-                isSoundEnabled = true;
-                soundPrompt.style.display = 'none';
-                localStorage.setItem('soundEnabled', 'true');
-            })
-            .catch(e => {
-                console.error("Audio playback failed:", e);
-                soundPrompt.style.display = 'block';
-            });
-    }
-
-    // Check sound preference from localStorage
-    if (localStorage.getItem('soundEnabled') === 'true') {
         isSoundEnabled = true;
-        soundPrompt.style.display = 'none';
+        localStorage.setItem('soundEnabled', 'true');
+        updateSoundPrompt();
+        playNotificationSound();
     }
 
-    // Listen for broadcast messages
-    broadcastChannel.addEventListener('message', (event) => {
-        if (event.data.type === 'new_order') {
-            renderOrders();
+    function displayOrderCard(orderId, order, isNew = false) {
+        const orderCard = document.createElement('div');
+        orderCard.className = 'order-card';
+        if (isNew) {
+            orderCard.classList.add('new-order');
+            setTimeout(() => {
+                orderCard.classList.remove('new-order');
+            }, 15000); // Remove class after 15 seconds
         }
+
+        const totalOrderPrice = order.items.reduce((total, item) => {
+            const itemPrice = menu.find(i => i.id == item.id)?.price || 0;
+            return total + (itemPrice * item.quantity);
+        }, 0);
+
+        orderCard.innerHTML = `
+            <div class="order-header">
+                <span class="order-time">${order.timestamp ? new Date(order.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</span>
+                <span class="order-total">Rs: ${totalOrderPrice.toFixed(2)}</span>
+            </div>
+            <ul class="order-item-list">
+                ${order.items.map(item => `<li>${item.quantity} x ${item.name} (Rs: ${(menu.find(i => i.id == item.id)?.price || 0).toFixed(2)} each)</li>`).join('')}
+            </ul>
+            <div class="table-actions">
+                <button class="btn-clear" data-order-id="${orderId}">Clear Order</button>
+            </div>
+        `;
+        return orderCard;
+    }
+
+    function showBillPaidMessage(tableNumber) {
+        const ordersSection = document.getElementById('orders');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'bill-paid-message';
+        messageDiv.innerHTML = `
+            <h2>✅ Bill for Table ${tableNumber} has been paid.</h2>
+        `;
+        ordersSection.prepend(messageDiv);
+        setTimeout(() => {
+            messageDiv.remove();
+        }, 5000);
+    }
+
+    // New function to render orders from Firebase
+    function renderOrders(snapshot) {
+        const ordersData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        const uniqueTables = new Set();
+        const ordersByTable = {};
+
+        ordersData.forEach(order => {
+            if (!ordersByTable[order.table]) {
+                ordersByTable[order.table] = [];
+            }
+            ordersByTable[order.table].push(order);
+            uniqueTables.add(order.table);
+        });
+
+        ordersContainer.innerHTML = '';
+        const sortedTableNumbers = [...uniqueTables].sort((a, b) => parseInt(a) - parseInt(b));
+
+        sortedTableNumbers.forEach(tableNumber => {
+            const tableSection = document.createElement('div');
+            tableSection.className = 'table-section';
+            tableSection.innerHTML = `<h2 class="table-header">Table ${tableNumber}</h2>`;
+
+            const sortedOrders = ordersByTable[tableNumber].sort((a, b) => b.timestamp - a.timestamp);
+            sortedOrders.forEach(order => {
+                const orderCard = displayOrderCard(order.id, order, false);
+                tableSection.appendChild(orderCard);
+            });
+            ordersContainer.appendChild(tableSection);
+        });
+        updateTableSelect(sortedTableNumbers);
+    }
+    
+    function updateTableSelect(tables) {
+        const currentTableValue = tableSelect.value;
+        tableSelect.innerHTML = '<option value="">-- Select Table --</option>';
+        tables.sort((a, b) => a - b).forEach(table => {
+            const option = document.createElement('option');
+            option.value = table;
+            option.textContent = `Table ${table}`;
+            tableSelect.appendChild(option);
+        });
+        tableSelect.value = currentTableValue; // Restore selection
+    }
+
+    // Function to clear a table's orders (mark as paid)
+    async function clearTableOrders(tableNumber) {
+        const ordersRef = db.collection('tables').doc(`table-${tableNumber}`).collection('orders');
+
+        try {
+            const snapshot = await ordersRef.where('status', '==', 'pending').get();
+            const batch = db.batch();
+            snapshot.docs.forEach(doc => {
+                batch.update(doc.ref, { status: 'paid' });
+            });
+            await batch.commit();
+            showBillPaidMessage(tableNumber);
+            document.getElementById('billing').classList.remove('active');
+            document.getElementById('orders').classList.add('active');
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelector('[data-tab="orders"]').classList.add('active');
+        } catch (error) {
+            console.error("Error clearing orders: ", error);
+            alert('Failed to mark orders as paid. Please try again.');
+        }
+    }
+
+    // Listen for real-time updates for new orders
+    db.collectionGroup('orders').where('status', '==', 'pending').onSnapshot(snapshot => {
+        snapshot.docChanges().forEach(change => {
+            if (change.type === 'added') {
+                console.log("New order detected.");
+                playNotificationSound();
+                // We'll re-render all orders to keep the UI simple and in sync
+            }
+        });
+        renderOrders(snapshot);
     });
+
+    // Update the billing section
+    function generateBillForTable(tableNumber) {
+        billDetails.style.display = 'block';
+        billItemsBody.innerHTML = '';
+        let total = 0;
+
+        db.collection('tables').doc(`table-${tableNumber}`).collection('orders').where('status', '==', 'pending').get().then(snapshot => {
+            snapshot.forEach(doc => {
+                const order = doc.data();
+                const itemsList = Array.isArray(order.items) ? order.items : Object.values(order.items);
+                itemsList.forEach(item => {
+                    const itemPrice = menu.find(i => i.id == item.id)?.price || 0;
+                    const itemTotal = itemPrice * item.quantity;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.name}</td>
+                        <td>${item.quantity}</td>
+                        <td>Rs: ${itemPrice.toFixed(2)}</td>
+                        <td>Rs: ${itemTotal.toFixed(2)}</td>
+                    `;
+                    billItemsBody.appendChild(row);
+                    total += itemTotal;
+                });
+            });
+            billTotalAmount.textContent = total.toFixed(2);
+            document.getElementById('bill-table-number').textContent = tableNumber;
+        }).catch(error => {
+            console.error("Error generating bill: ", error);
+        });
+    }
 
     // Event listeners
     tableSelect.addEventListener('change', (e) => {
@@ -330,7 +249,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     refreshButton.addEventListener('click', () => {
-        renderOrders();
+        // The onSnapshot listener handles real-time updates, but this can force a re-render
+        db.collectionGroup('orders').where('status', '==', 'pending').get().then(renderOrders);
         const currentTable = tableSelect.value;
         if (currentTable) {
             generateBillForTable(currentTable);
@@ -338,20 +258,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     enableSoundButton.addEventListener('click', enableSound);
-
-    // Initialize and render
-    initDB().then(() => {
-        renderOrders();
-        
-        // Auto-refresh every 5 seconds
-        setInterval(() => {
-            renderOrders();
-            const currentTable = tableSelect.value;
-            if (currentTable && document.getElementById('billing').classList.contains('active')) {
-                generateBillForTable(currentTable);
-            }
-        }, 5000);
-    }).catch(error => {
-        console.error('Failed to initialize database:', error);
-    });
 });

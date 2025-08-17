@@ -6,6 +6,8 @@
     <title>TeaPoint: Order</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <header class="app-header">
@@ -14,8 +16,7 @@
     </header>
 
     <main class="menu-grid" id="menu-container">
-        <!-- Menu items will be inserted here by JavaScript -->
-    </main>
+        </main>
 
     <div class="order-summary-bar">
         <p>Total: Rs: <span id="total-price">0.00</span></p>
@@ -37,6 +38,20 @@
         </div>
     </footer>
 
+    <script>
+        // Your Firebase project configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqD0s8nceErvZe5ZlIxQmyipKcQv23P2Q",
+            authDomain: "teapoint-ordering-system.firebaseapp.com",
+            projectId: "teapoint-ordering-system",
+            storageBucket: "teapoint-ordering-system.firebasestorage.app",
+            messagingSenderId: "936037537715",
+            appId: "1:936037537715:web:5aa1e06cbbd618c52b5dc6",
+            measurementId: "G-E828DRY255"
+        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+    </script>
     <script src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

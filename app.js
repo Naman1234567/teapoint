@@ -26,51 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const urlParams = new URLSearchParams(window.location.search);
     const currentTableNumber = urlParams.get('table');
-    const broadcastChannel = new BroadcastChannel('orders_channel');
-    let db;
 
-    // Initialize IndexedDB
-    function initDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open('TeaPointDB', 1);
-
-            request.onerror = (event) => {
-                console.error('Database error:', event.target.error);
-                reject(event.target.error);
-            };
-
-            request.onsuccess = (event) => {
-                db = event.target.result;
-                console.log('Database initialized');
-                resolve(db);
-            };
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains('orders')) {
-                    db.createObjectStore('orders', { keyPath: 'id' });
-                }
-            };
-        });
-    }
-
-    // Add order to IndexedDB
-    function addOrder(order) {
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction(['orders'], 'readwrite');
-            const store = transaction.objectStore('orders');
-            const request = store.add(order);
-
-            request.onsuccess = () => {
-                resolve();
-            };
-
-            request.onerror = (event) => {
-                console.error('Error adding order:', event.target.error);
-                reject(event.target.error);
-            };
-        });
-    }
+    // Firebase instance
+    const db = firebase.firestore();
 
     function renderMenu() {
         menuContainer.innerHTML = '';
@@ -103,65 +61,58 @@ document.addEventListener('DOMContentLoaded', () => {
         totalPriceElement.textContent = total.toFixed(2);
     }
 
+    // New placeOrder function to use Firebase
     async function placeOrder() {
-        const orderItems = [];
-        let totalOrderPrice = 0;
+        if (!currentTableNumber) {
+            showModal('Error', 'Table number not set. Please scan the QR code again.', false);
+            return;
+        }
 
+        const cart = getCart();
+        if (Object.keys(cart).length === 0) {
+            showModal('Info', 'Your cart is empty!', false);
+            return;
+        }
+
+        const order = {
+            table: currentTableNumber,
+            items: Object.values(cart),
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            status: 'pending',
+        };
+
+        try {
+            // Create a document for the table if it doesn't exist and add a new order as a subcollection
+            const tableDocRef = db.collection('tables').doc(`table-${currentTableNumber}`);
+            await tableDocRef.set({ lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
+            await tableDocRef.collection('orders').add(order);
+
+            showModal('Order Placed!', 'Your order has been sent to the kitchen.', true);
+            clearQuantities();
+        } catch (error) {
+            console.error("Error placing order: ", error);
+            showModal('Error', 'Failed to place order. Please try again or call a staff member.', false);
+        }
+    }
+
+    function getCart() {
+        const cart = {};
         document.querySelectorAll('.quantity-input').forEach(input => {
             const quantity = parseInt(input.value);
             const itemId = input.dataset.itemId;
             const item = menu.find(i => i.id === itemId);
-
             if (item && quantity > 0) {
-                orderItems.push({
+                cart[itemId] = {
+                    id: itemId,
                     name: item.name,
-                    price: item.price,
                     quantity: quantity
-                });
-                totalOrderPrice += item.price * quantity;
+                };
             }
         });
-
-        if (orderItems.length === 0) {
-            showModal('No Items Selected', 'Please select some items to place an order.', false);
-            return;
-        }
-
-        const newOrder = {
-            id: Date.now().toString(),
-            tableNumber: currentTableNumber,
-            items: orderItems,
-            total: totalOrderPrice,
-            timestamp: new Date().toISOString(),
-            synced: false
-        };
-
-        try {
-            await addOrder(newOrder);
-            
-            // Broadcast the new order to other tabs
-            broadcastChannel.postMessage({
-                type: 'new_order',
-                order: newOrder
-            });
-
-            if (navigator.onLine) {
-                // In a real app, you would sync with server here
-                // For this demo, we'll just mark as synced
-                newOrder.synced = true;
-                showModal('Order Placed!', `Your order from Table ${currentTableNumber} has been received.`, true);
-            } else {
-                showModal('Order Saved', 'Your order has been saved locally and will be synced when online.', true);
-            }
-
-            clearCart();
-        } catch (error) {
-            console.error('Error placing order:', error);
-            showModal('Error', 'There was an error placing your order. Please try again.', false);
-        }
+        return cart;
     }
 
-    function clearCart() {
+    function clearQuantities() {
         document.querySelectorAll('.quantity-input').forEach(input => {
             input.value = 0;
         });
@@ -184,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Set table number in header
-    if (tableHeader && tableNumberDisplay) {
+    if (tableHeader && tableNumberDisplay && currentTableNumber) {
         tableHeader.textContent = `☕ Table ${currentTableNumber} - Order ☕`;
         tableNumberDisplay.textContent = `Table: ${currentTableNumber}`;
     }
@@ -200,18 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Sync when coming back online
-    window.addEventListener('online', () => {
-        // In a real app, you would sync with server here
-        // For this demo, we'll just mark as synced
-        showModal('Back Online', 'You are now online. Orders will be synced.', true);
-    });
-
     // Initial render
-    initDB().then(() => {
-        renderMenu();
-        updateCart();
-    }).catch(error => {
-        console.error('Failed to initialize database:', error);
-    });
+    renderMenu();
 });

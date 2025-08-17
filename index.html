@@ -72,7 +72,6 @@
     <main class="tables-container">
         <h2>Please scan your table QR code</h2>
         <p>Or select your table below:</p>
-
         <div class="tables-grid">
             <a href="table.html?table=1" class="table-card">Table 1</a>
             <a href="table.html?table=2" class="table-card">Table 2</a>
@@ -85,15 +84,15 @@
             <a href="table.html?table=9" class="table-card">Table 9</a>
             <a href="table.html?table=10" class="table-card">Table 10</a>
         </div>
-
-        <div class="admin-login" id="admin-login">
-            <h2>Admin Login</h2>
-            <input type="text" id="username" placeholder="Username" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <button id="login-btn">Login</button>
-            <p class="login-error" id="login-error">Invalid username or password</p>
-        </div>
     </main>
+
+    <div class="admin-login" id="admin-login">
+        <h2>Admin Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button id="login-btn">Login</button>
+        <p id="login-error" class="login-error">Invalid username or password.</p>
+    </div>
 
     <footer class="app-footer">
         <div class="footer-container">
@@ -102,10 +101,11 @@
     </footer>
 
     <script>
-        // Toggle admin login visibility
-        document.getElementById('admin-icon').addEventListener('click', function() {
-            const loginPanel = document.getElementById('admin-login');
-            loginPanel.style.display = loginPanel.style.display === 'block' ? 'none' : 'block';
+        const adminIcon = document.getElementById('admin-icon');
+        const adminLogin = document.getElementById('admin-login');
+
+        adminIcon.addEventListener('click', function() {
+            adminLogin.style.display = 'block';
         });
 
         // Admin login functionality
