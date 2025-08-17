@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeaPoint Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <header class="app-header">
+        <h1>TeaPoint Admin Dashboard</h1>
+        <div class="admin-actions">
+            <button id="refresh-button" class="btn-refresh">⟳ Refresh</button>
+        </div>
+    </header>
+
+    <div id="sound-prompt" class="sound-prompt">
+        <p>🔔 New order sounds are currently muted. Tap here to enable.</p>
+        <button id="enable-sound-button" class="btn-primary">Enable Sound</button>
+    </div>
+
+    <div class="admin-tabs">
+        <button class="tab-button active" data-tab="orders">Orders</button>
+        <button class="tab-button" data-tab="billing">Billing</button>
+    </div>
+
+    <div id="orders" class="tab-content active">
+        <main class="orders-container" id="orders-container"></main>
+    </div>
+
+    <div id="billing" class="tab-content">
+        <div class="billing-container">
+            <div class="table-selection">
+                <label for="table-select">Select Table:</label>
+                <select id="table-select">
+                    <option value="">-- Select Table --</option>
+                    <option value="1">Table 1</option>
+                    <option value="2">Table 2</option>
+                    <option value="3">Table 3</option>
+                    <option value="4">Table 4</option>
+                    <option value="5">Table 5</option>
+                    <option value="6">Table 6</option>
+                    <option value="7">Table 7</option>
+                    <option value="8">Table 8</option>
+                    <option value="9">Table 9</option>
+                    <option value="10">Table 10</option>
+                </select>
+            </div>
+
+            <div id="bill-details" class="bill-details">
+                <h2 id="bill-table-header">Bill for Table: </h2>
+                <table class="bill-items-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bill-items-body">
+                        <!-- Bill items will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+                <div class="bill-total">
+                    <p>Total: Rs: <span id="bill-total-amount">0.00</span></p>
+                    <button id="mark-paid-button" class="btn-primary">Mark as Paid</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="notification-sound" src="notification.mp3" preload="auto"></audio>
+
+    <footer class="app-footer">
+        <div class="footer-container">
+            Developed by Naman Verma with Love ❤️
+        </div>
+    </footer>
+
+    <script src="admin.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

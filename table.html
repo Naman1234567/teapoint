@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeaPoint: Order</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <header class="app-header">
+        <h1 id="table-header">☕ TeaPoint Menu ☕</h1>
+        <div id="table-number-display">Table: Loading...</div>
+    </header>
+
+    <main class="menu-grid" id="menu-container">
+        <!-- Menu items will be inserted here by JavaScript -->
+    </main>
+
+    <div class="order-summary-bar">
+        <p>Total: Rs: <span id="total-price">0.00</span></p>
+        <button id="order-button" class="btn-primary">Place Order</button>
+    </div>
+
+    <div id="status-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <div class="modal-icon">✅</div>
+            <h2 id="modal-heading"></h2>
+            <p id="modal-message"></p>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        <div class="footer-container">
+            Developed by Naman Verma with Love ❤️
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>

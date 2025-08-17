@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeaPoint: Table Selection</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        .admin-login {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px auto;
+            max-width: 400px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .admin-login h2 {
+            color: #333;
+            margin-top: 0;
+            text-align: center;
+        }
+        .admin-login input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .admin-login button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .admin-login button:hover {
+            background-color: #45a049;
+        }
+        .login-error {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+        .admin-icon {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            color: white;
+        }
+        .admin-icon:hover {
+            color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>☕ Welcome to TeaPoint ☕</h1>
+        <button class="admin-icon" id="admin-icon" title="Admin Login">🔑</button>
+    </header>
+
+    <main class="tables-container">
+        <h2>Please scan your table QR code</h2>
+        <p>Or select your table below:</p>
+
+        <div class="tables-grid">
+            <a href="table.html?table=1" class="table-card">Table 1</a>
+            <a href="table.html?table=2" class="table-card">Table 2</a>
+            <a href="table.html?table=3" class="table-card">Table 3</a>
+            <a href="table.html?table=4" class="table-card">Table 4</a>
+            <a href="table.html?table=5" class="table-card">Table 5</a>
+            <a href="table.html?table=6" class="table-card">Table 6</a>
+            <a href="table.html?table=7" class="table-card">Table 7</a>
+            <a href="table.html?table=8" class="table-card">Table 8</a>
+            <a href="table.html?table=9" class="table-card">Table 9</a>
+            <a href="table.html?table=10" class="table-card">Table 10</a>
+        </div>
+
+        <div class="admin-login" id="admin-login">
+            <h2>Admin Login</h2>
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button id="login-btn">Login</button>
+            <p class="login-error" id="login-error">Invalid username or password</p>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-container">
+            Developed by Naman Verma with Love ❤️
+        </div>
+    </footer>
+
+    <script>
+        // Toggle admin login visibility
+        document.getElementById('admin-icon').addEventListener('click', function() {
+            const loginPanel = document.getElementById('admin-login');
+            loginPanel.style.display = loginPanel.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // Admin login functionality
+        document.getElementById('login-btn').addEventListener('click', function() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorElement = document.getElementById('login-error');
+            
+            if (username === 'teapoint' && password === 'teapoint1973') {
+                // Successful login - redirect to admin page
+                window.location.href = 'admin.html';
+            } else {
+                // Show error message
+                errorElement.style.display = 'block';
+            }
+        });
+
+        // Allow login on Enter key press
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('login-btn').click();
+            }
+        });
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
